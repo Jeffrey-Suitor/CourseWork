@@ -1,0 +1,154 @@
+---
+title: "Untitled"
+author: "Jeff Suitor"
+date: "11/19/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import libraries
+```{r message=FALSE}
+library("readr")
+library("MASS")
+library("car")
+library("pscl")
+library("caret")
+```
+
+Clean the data
+```{r}
+data_og = read_csv("heart.csv", show_col_types = FALSE)
+data = data_og
+data = subset(data, Oldpeak>=0) # Oldpeak shouldn't be negative
+data = subset(data, RestingBP>0) # Resting BP can't be 0
+data = subset(data, Cholesterol>0) # Cholesterol can't be 0
+
+col_names = c("Sex", "ChestPainType", "RestingECG", "ST_Slope", "ExerciseAngina", "FastingBS")
+
+data[,col_names] <- lapply(data[,col_names] , factor)
+
+rm(list=c("col_names"))
+```
+
+Check for NA
+```{r}
+sum(is.na(data))
+```
+
+Create the model
+```{r}
+model = glm(HeartDisease ~ ., data = data, family = "binomial"(link="logit"))
+```
+
+There is negative impacts on on the different types of pain because ASY is baseline and other types of pain offer a protective effect.
+
+
+Check for multiple logistic regression assumptions:
+
+1. Appropriate Outcome Type -> Heart disease is either true or false so yes it is appropriate.
+```{r}
+length(unique(data$HeartDisease))
+```
+
+2. There is a linear relationship between the explanatory variable and the logit of the response variable
+```{r}
+logodds = model$linear.predictors
+old_peak = (data$Oldpeak + 0.0000000000000001)
+boxTidwell(logodds ~ data$Age)
+boxTidwell(logodds ~ data$RestingBP)
+boxTidwell(logodds ~ data$Cholesterol)
+boxTidwell(logodds ~ data$MaxHR)
+boxTidwell(logodds ~ old_peak)
+
+plot(data$Age, logodds)
+plot(data$RestingBP, logodds)
+plot(data$Cholesterol, logodds)
+plot(data$MaxHR, logodds, main="Max Heart Rate vs Log Odds", xlab="Max Heart Rate", ylab="Log Odds")
+plot(data$Oldpeak, logodds,  main="Oldpeak vs Log Odds", xlab="Oldpeak", ylab="Log Odds")
+
+rm(list=c("logodds", "old_peak"))
+```
+
+Recreate the model without the additional columns
+```{r}
+data = subset(data, select= -c(Oldpeak, MaxHR))
+model2 = glm(HeartDisease ~ ., data = data, family = "binomial"(link="logit"))
+```
+
+3. There is no multicollinearity among explanatory variables -> All VIF values are less than 2 and many are close to 1 indicating that there is only moderate correlation with other predictor variables but that it is not severe enough to impact our model.
+```{r}
+vif(model2)
+```
+
+4. There are no extreme outliers
+```{r}
+cooks_distance <- cooks.distance(model2)
+
+n = nrow(data)
+plot(cooks_distance, main = "Cooks Distance for Influential Obs")
+abline(h = 4/n, lty = 2, col = "steelblue") # add cutoff line
+#identify influential points
+influential_obs = as.numeric(names(cooks_distance)[(cooks_distance > (4/n))])
+
+#define new data frame with influential points removed
+data = data[-influential_obs, ]
+
+rm(list=c("cooks_distance", "influential_obs", "n"))
+```
+Redo the model without the outliers
+```{r}
+model3 = glm(HeartDisease ~ ., data = data, family = "binomial"(link="logit"))
+summary(model3)
+```
+
+Viewing the plots we can see there is no distinct pattern between the log odds and the params.
+
+Run an anova using chi squared
+```{r}
+anova(model3, test="Chisq")
+```
+
+Plot the model to see the residuals
+```{r}
+plot(model3)
+```
+
+Run a sensitivity analysis
+```{r}
+predictions = ifelse(predict(model3, type="response") >= 0.5, 1, 0)
+actual_values = model3$y
+conf_matrix = table(predictions, actual_values)
+conf_matrix
+sensitivity(conf_matrix)
+specificity(conf_matrix)
+```
+
+Run stepAIC to reduce the model
+```{r}
+model4 = stepAIC(model3)
+```
+
+Analyze the results
+```{r}
+summary(model4)
+summary(model4$fitted.values)
+```
+
+Perform sensitivity and specificity
+```{r}
+predictions = ifelse(predict(model4, type="response") >= 0.5, 1, 0)
+actual_values = model4$y
+conf_matrix = table(predictions, actual_values)
+conf_matrix
+sensitivity(conf_matrix)
+specificity(conf_matrix)
+```
+
+ANOVA comparison
+```{r}
+anova(model3, model4, test="Chisq")
+```
+

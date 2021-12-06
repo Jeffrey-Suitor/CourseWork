@@ -1,0 +1,169 @@
+---
+title: "400138679_4qz3_a1"
+author: "Jeff Suitor"
+date: "10/1/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import libraries.
+```{r}
+library("lm.beta")
+library("carData")
+library("MASS")
+library("agricolae")
+```
+
+# Question 1
+
+Import the data and drop the patient column.
+``` {r}
+setwd("~/code/4qz3-modelling/a1")
+q1_data = read.delim("Q1.txt", header=TRUE, "\t")[-c(1)]
+```
+\
+To calculate which variables are most a linear regression using standardized values should be used. The variables with the largest absolute standardized coefficients are the most impactful on the regression.
+```{r}
+fit = lm(q1_data$mg.Urinase ~ q1_data$RBC + q1_data$Protein + q1_data$Glucose + q1_data$Specific.Gravity + q1_data$Bilirubin, data=q1_data)
+summary(fit)
+lm.beta(fit)
+```
+
+Therefore, the variables in order of importance from most important to least important is glucose, RBC, urine protein, urine specific gravity, and lastly bilirubin levels.\
+The final regression model is: Y = $-399.9123 + 3.2571*RBC + 23.4102**Protein + 2.9242*X_3*Glucose+ 10.2713*Specific.gravity - 0.6876*Bilirubin$ \ 
+Interestingly the RBC, specific gravity and bilirubin have non significant P values indicating that they can likely be eliminated from the model. When examining the standardized coefficients it can be seen that the bilirubin has the least impact on the model and can likely be removed. Due to the P value being below 0.05 the model is significant although it can be further optimized by removing unnecessary parameters.
+\
+To analyze the residuals start by first plotting the linear model with residuals. When plotting the residuals there appear to be no appear making a linear regression an appropriate regression time. To get a better sense of the residuals create a Q-Q plot and plot the density of the residuals. The residuals are left shifted showing that there is data which is altering the normal distribution of the data.
+
+```{r}
+plot(fit, which=1, col=c("blue")) # Residuals vs Fitted Plot
+res = resid(fit)
+
+plot(res)
+qqline(0)
+title("Residuals plot")
+
+qqnorm(res)
+qqline(res) 
+
+plot(density(res))
+```
+\
+Analyzing the results of the ANOVA test it can be seen that both the specific gravity and the bilirubin parameters are not significant for the model due to their P values being greater than 0.05. 
+```{r}
+anova(fit)
+```
+
+Using this information an optimal model was created and plotted.
+```{r}
+optimal_fit = lm(q1_data$mg.Urinase ~ q1_data$RBC + q1_data$Protein + q1_data$Glucose, data=q1_data)
+plot(optimal_fit, which=1, col=c("blue")) # Residuals vs Fitted Plot
+summary(optimal_fit)
+anova(optimal_fit)
+```
+
+The model remains significant as it's P value is less than 0.05 and is the best fit as an ANOVA of the optimized model shows that all variables are significant.\
+The optimal regression is: $Y = -414.7980 + 3.1496*RBC + 26.4612*Protein + 3.1240*Glucose$
+
+\newpage
+
+# Question 2
+
+Import the data
+```{r}
+q2_data = read.delim("Q2.txt", header=FALSE, "\t")
+treatments = c("3d-cast", "plaster", "fiberglass", "fixator", "splint", "semi-rigid", "spongy", "airboot", "3d-splint")
+hospitals = c("H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8")
+colnames(q2_data) = treatments
+```
+
+## A
+
+Create the data frame
+```{r}
+vect = c(t(as.matrix(q2_data))) # vector of all data
+treatment_num = 9 # number of treatment levels 
+patient_num = 8  # number of patients in each hospital (block size)
+hospital_num = 8 # number of hospitals
+RCBD_df = data.frame(vect)
+colnames(RCBD_df) = c("BMD")
+RCBD_df$treatments = gl(treatment_num, 1, treatment_num * patient_num * hospital_num, factor(treatments))   # matching treatment 
+RCBD_df$hospital = gl(hospital_num, patient_num*treatment_num, treatment_num * patient_num * hospital_num, factor(hospitals))
+```
+
+Run the anova.\
+\
+Hospitals:\
+\t Null hypothesis: There is no variation between different hospitals.\
+\t Alternative hypothesis: There is a variation between hospitals.\
+
+Treatments:\
+\t Null hypothesis: There is no variation between different treatments.\
+\t Alternative hypothesis: There is a variation between treatments.\
+```{r}
+anova_res = aov(RCBD_df$BMD ~RCBD_df$hospital + RCBD_df$treatments)
+summary(anova_res)
+```
+
+The anova indicates that the differences between hospitals is not significant because P > 0.05 so we accept the null hypothesis but P is less than 0.05 so we reject the null hypothesis.
+```{r}
+duncan.test(anova_res, "RCBD_df$hospital", console=TRUE)
+```
+
+A DMRT confirms that only hospitals 6 and 8 differed from hospital 2. However, there was a larger variance due to treatments as can be seen when performing a DMRT on the treatments.\
+```{r}
+duncan.test(anova_res, "RCBD_df$treatments", console=TRUE)
+```
+
+From the DMRT we can see that following groups of treatments have no significant differences:
+
+* external fixator, 3D printed splint
+* 3D printed splint, spongy cast, fiberglass cast, 3D printed case, Airboot, plaster cast, semi-rigid external fixator
+* fiberglass cast, 3D printed case, Airboot, plaster cast, semi-rigid external fixator, simple splinting
+
+The variance in this design is coming from the difference in treatments with minimal impact from which hospitals performed the procedures.
+
+\newpage
+## B
+
+Setup the data frame
+```{r}
+scanners = c("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8")
+RCBD_df$scanners = gl(hospital_num, treatment_num, treatment_num * patient_num * hospital_num, factor(scanners))
+```
+
+Run the anova.
+Scanners:\
+\t Null hypothesis: There is no variation between DEXA scanners.\
+\t Alternative hypothesis: There is a variation between DEXA scanners.
+```{r}
+anova_dexa_res = aov(RCBD_df$BMD ~ RCBD_df$scanners + RCBD_df$treatments)
+summary(anova_dexa_res)
+```
+
+Run a DMRT to examine the variance in scanners.
+```{r}
+duncan.test(anova_dexa_res, "RCBD_df$scanners", console=TRUE)
+```
+
+
+The DMRT of the dexa scanners confirms that there is no significant variance between them. Run a DMRT to see if there is any change in the differences between treatments.
+```{r}
+duncan.test(anova_dexa_res, "RCBD_df$treatments", console=TRUE)
+```
+
+From the DMRT we can see that following groups of treatments have no significant differences:
+
+* external fixator, 3D printed splint
+* 3D printed splint, spongy cast, fiberglass cast, 3D printed case, Airboot, plaster cast, semi-rigid external fixator
+* spongy cast, fiberglass cast, 3D printed case, Airboot, plaster cast, semi-rigid external fixator, simple splinting
+
+The spongy cast is now no longer considered different from the fiberglass cast, 3D printed case, Airboot, plaster cast, semi-rigid external fixator, or simple splinting.\
+\
+The the key difference between the approach in A and the approach in B is that A used a blocking approaching which reduces experimental error due to the blocking methodology while B used a CRD with subsamples.\
+\
+All code shown throughout this assignment is the only code that was used.
+

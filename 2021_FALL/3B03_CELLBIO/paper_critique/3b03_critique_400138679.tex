@@ -1,0 +1,40 @@
+\documentclass{amsart}
+\usepackage{setspace}
+\usepackage{import}
+
+\setstretch{1.5}
+
+\title{MOLBIOL 3B03 Paper 4 Critique}
+\author{Jeff Suitor}
+\email{suitorj@mcmaster.ca}
+\date{October 31, 2021}
+
+% Check if we are compiling under latex or pdflatex, and include the
+% appropriate graphics package
+\ifx\pdftexversion\undefined
+  \usepackage[dvips]{graphicx}
+\else
+  \usepackage[pdftex]{graphicx}
+\fi
+
+\begin{document}
+
+\begin{abstract}
+    \import{.}{abstract.tex}
+\end{abstract}
+
+\maketitle
+
+\newpage
+
+\section{Overview}
+    \import{.}{overview.tex}
+
+\section{Critique}
+    \import{.}{critique.tex}
+
+\begin{thebibliography}{99}
+
+\end{thebibliography}
+
+\end{document}
