@@ -1,0 +1,176 @@
+# Import libraries
+library("readr")
+library("MASS")
+library("car")
+library("pscl")
+library("caret")
+setwd("~/CourseWork/2021_FALL/4QZ3_MODELLING/project")
+
+# Clean the data
+data_og = read_csv("heart.csv", show_col_types = FALSE)
+data = subset(data_og, Oldpeak>=0) # Oldpeak shouldn't be negative
+data = subset(data, RestingBP>0) # Resting BP can't be 0
+data = subset(data, Cholesterol>0) # Cholesterol can't be 0
+col_names = c("Sex", "ChestPainType", "RestingECG", "ST_Slope", "ExerciseAngina", "FastingBS")
+
+data[,col_names] <- lapply(data[,col_names] , factor)
+cleaned_data = data
+rm(list=c("col_names"))
+
+# Check for NA
+sum(is.na(data))
+
+# Create the model
+model = glm(HeartDisease ~ ., data = data, family = "binomial"(link="logit"))
+
+# Check for multiple logistic regression assumptions:
+# 1. Appropriate Outcome Type -> Heart disease is either true or false so yes it is appropriate.
+length(unique(data$HeartDisease))
+
+# 2. There is a linear relationship between the explanatory variable and the logit of the response variable
+logodds = model$linear.predictors
+old_peak = (data$Oldpeak + 0.0000000000000001)
+boxTidwell(logodds ~ data$Age)
+boxTidwell(logodds ~ data$RestingBP)
+boxTidwell(logodds ~ data$Cholesterol)
+boxTidwell(logodds ~ data$MaxHR)
+boxTidwell(logodds ~ old_peak)
+
+plot(data$Age, logodds)
+plot(data$RestingBP, logodds)
+plot(data$Cholesterol, logodds)
+plot(data$MaxHR, logodds, main="Max Heart Rate (BPM) vs Log Odds", xlab="Max Heart Rate (BPM)", ylab="Log Odds", pch=20)
+plot(data$Oldpeak, logodds,  main="Oldpeak (mV) vs Log Odds", xlab="Oldpeak (mV)", ylab="Log Odds", pch=20)
+
+rm(list=c("logodds", "old_peak"))
+
+# Recreate the model without the additional columns
+data = subset(data, select= -c(Oldpeak, MaxHR))
+model2 = glm(HeartDisease ~ ., data = data, family = "binomial"(link="logit"))
+
+# 3. There is no multicollinearity among explanatory variables -> All VIF values are less than 2 and many are close to 1 indicating that there is only moderate correlation with other predictor variables but that it is not severe enough to impact our model.
+vif(model2)
+
+# 4. There are no extreme outliers
+cooks_distance <- cooks.distance(model2)
+
+n = nrow(data)
+plot(cooks_distance, main = "Cooks Distance for Influential Observations", pch=20)
+abline(h = 4/n, lty = 2, col = "steelblue") # add cutoff line
+#identify influential points
+influential_obs = as.numeric(names(cooks_distance)[(cooks_distance > (4/n))])
+
+#define new data frame with influential points removed
+data = data[-influential_obs, ]
+
+rm(list=c("cooks_distance", "influential_obs", "n"))
+
+# Redo the model without the outliers
+full_model = glm(HeartDisease ~ ., data = data, family = "binomial"(link="logit"))
+summary(full_model)
+
+# Compare model against null model using LRT
+anova(full_model, test="LRT")
+
+# Plot the model to see the residuals
+plot(full_model)
+summary(full_model)
+
+# Function for calculating the sensitivty and specificity
+sense_spec_calc <- function(preds, acts) {
+  df = {}
+  conf_matrix = table(preds, acts)
+  conf_matrix
+  df$sensitivity = sensitivity(conf_matrix) * 100
+  df$specificity = specificity(conf_matrix)* 100
+  return(df)
+}
+
+# Calculate sensitivity and specificity of model
+predictions = ifelse(predict(full_model, type="response") >= 0.5, 1, 0)
+actual_values = full_model$y
+sense_spec_calc(predictions, actual_values)
+conf = table(predictions, actual_values)
+conf
+
+# Run stepAIC to reduce the model
+stepAIC_model = stepAIC(full_model)
+
+# Analyze the results
+summary(stepAIC_model)
+summary(stepAIC_model$fitted.values)
+
+# Perform sensitivity and specificity
+predictions = ifelse(predict(stepAIC_model, type="response") >= 0.5, 1, 0)
+actual_values = stepAIC_model$y
+sense_spec_calc(predictions, actual_values)
+
+# LRT between stepAIC and Full model
+anova(stepAIC_model, full_model, test="LRT")
+
+
+# ZACH CODE START
+library(tidyverse)
+library(rgl)
+library(aod)
+library("readr")
+library("FactoMineR")
+library("factoextra")
+library(pROC)
+library(lmtest)
+
+#Initial Model
+full_model = glm(HeartDisease ~ ., data=cleaned_data, family = binomial(link="logit")
+)
+summary(full_model)
+
+#==================================================================================
+#Remove dependent variable (Heart Disease)
+heart = subset(cleaned_data, select=-c(HeartDisease))
+
+#===================================================================================
+
+#Run FAMD (Factor Analysis of Mixed Data)
+#Combines PCA (Numerical, Continuous) and MCA (Categorical)
+
+res.famd <- FAMD(heart, ncp = 11, graph = TRUE)
+print(res.famd)
+eig.val <- get_eigenvalue(res.famd)
+eig.val #Percent contributed to total variance by each Component
+fviz_screeplot(res.famd) #Scree Plot
+
+
+# Plot of variables
+fviz_famd_var(res.famd, 'var', 
+              axes = c(1, 2),
+              col.var = 'cos2')
+# Contribution to the first dimension
+fviz_contrib(res.famd, "var", axes = 1)
+# Contribution to the second dimension
+fviz_contrib(res.famd, "var", axes = 2)
+# Contribution to the third dimension and so on
+fviz_contrib(res.famd, "var", axes = 3)
+fviz_contrib(res.famd, "var", axes = 4)
+fviz_contrib(res.famd, "var", axes = 5)
+
+#=================================================================
+#New Model
+#Reduced from FAMD
+
+model.reduced = glm(HeartDisease ~ Age  + RestingBP + FastingBS +RestingECG +
+                      ExerciseAngina + Oldpeak + ST_Slope + ChestPainType + MaxHR,
+                    data=cleaned_data,
+                    family = binomial(link="logit"))
+
+summary(model.reduced)
+
+#Compare full to reduced. P < 2.2e-16, so we reject null and go with the full model
+#This is backed by the fact that our PCs only cover 38% of the variance, but to cover 
+#even 50% we need all 11 variables in some capacity.
+lrtest(model.reduced, full_model, )
+anova(model.reduced, full_model,  test = "LRT")
+
+
+predictions = ifelse(predict(model.reduced, type="response") >= 0.5, 1, 0)
+actual_values = model.reduced$y
+sense_spec_calc(predictions, actual_values)

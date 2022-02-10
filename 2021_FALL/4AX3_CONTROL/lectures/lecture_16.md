@@ -20,11 +20,11 @@ $P_m^+ = A P_{m-1} A^T + Q$ \
 We want to minimize the prediction error \
 
 Predict:
-* \widetilde{x}_m^+ -> C \widetilde{x}_m^+ \widetilde{y}_m \
+$\widetilde{x}_m^+ -> C \widetilde{x}_m^+ \widetilde{y}_m$
 
 $\widetilde{x}_m = \widetilde{x}_m^+ + k_m(y_m - \widetilde{y}_m^+)$ \
 $k = \frac{\text{model uncertainty}}{\text{uncertainty in model + uncertainty in measurement}}$ \
-$k = \frac{P_m^+ C^+}{P_m^ C^++ + R} \
+$k = \frac{P_m^+ C^+}{P_m^+ C^+ + R}$ \
 
 ## Simple Example
 
@@ -38,7 +38,7 @@ R = model uncertainty  \
 
 $y'' = \alpha_1 y' + \alpha_0 y = 0$ \
 $system = \begin{bmatrix} y \\ y1 \end{bmatrix}$ \
-$\begin{bmatrix} 1 & 0 \\ - \alpha_0 & - \alpha_1$ \
+$\begin{bmatrix} 1 & 0 \\ - \alpha_0 & - \alpha_1 \end{bmatrix}$ \
 $alpha_1, alpha_0 > 0$ \
 Spiral -> creates a spiral when you plot y and y_!, when you plot in state space you get a spiral \
 \
@@ -64,7 +64,7 @@ Measuring $\alpha$ and distance d \
 y'' = -g \
 If the kalman equation doesn't converge and continues straight you need to add a state variable \
 d sin(d)
-$\begin{bmatrix} x \dot{x} y \dot{y} \theta \dot{\theta}$ \
+$\begin{bmatrix} x & \dot{x} \\ y &  \dot{y} \\ \theta & \dot{\theta} \end{bmatrix}$ \
 $\dot{x} = v cos(\theta)$ \
 $\dot{y} = v sin(\theta)$ \
 Landmark \

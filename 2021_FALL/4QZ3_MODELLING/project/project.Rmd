@@ -88,7 +88,7 @@ vif(model2)
 cooks_distance <- cooks.distance(model2)
 
 n = nrow(data)
-plot(cooks_distance, main = "Cooks Distance for Influential Obs")
+plot(cooks_distance, main = "Cooks Distance for Influential Observations", pch=20)
 abline(h = 4/n, lty = 2, col = "steelblue") # add cutoff line
 #identify influential points
 influential_obs = as.numeric(names(cooks_distance)[(cooks_distance > (4/n))])
@@ -108,12 +108,13 @@ Viewing the plots we can see there is no distinct pattern between the log odds a
 
 Run an anova using chi squared
 ```{r}
-anova(model3, test="Chisq")
+anova(model3, test="LRT")
 ```
 
 Plot the model to see the residuals
 ```{r}
 plot(model3)
+summary(model3)
 ```
 
 Run a sensitivity analysis
@@ -149,6 +150,16 @@ specificity(conf_matrix)
 
 ANOVA comparison
 ```{r}
-anova(model3, model4, test="Chisq")
+anova(model4, model3, test="LRT")
+```
+
+
+
+```{r}
+mat = matrix(c(335, 52, 55, 304), ncol=2, byrow=TRUE)
+conf_matrix = as.table(mat)
+conf_matrix
+sensitivity(conf_matrix) * 100
+specificity(conf_matrix)* 100
 ```
 

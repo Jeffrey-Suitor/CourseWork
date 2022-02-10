@@ -1,4 +1,4 @@
-# Lecture 2
+# Lecture 3
 
 ## Probability Partitioning
 
@@ -24,17 +24,14 @@ $$\begin{matrix} 0 & 0 & 0 & 0 \\
 
 ## Bayesian Reasoning
 
-<center>
-~~~mermaid
+``` mermaid
 graph TD
     X0-->X1
     X1-->Y1
     X1-->Xn
     X1-->Noise
     Y1-->X1
-~~~
-</center>
-
+```
 
 * $P(X | Y) = \int X P(X | Y) dx$ \
 

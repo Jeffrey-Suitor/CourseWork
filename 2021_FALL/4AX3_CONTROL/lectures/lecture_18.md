@@ -1,7 +1,5 @@
 # Lecture 18
 
-MISSED THE FIRST FEW MINTUES \
-
 ## Particle Filter
 
 Markov Model (Chains) \
@@ -35,7 +33,7 @@ $E(f(x)) = \int f(x) P(x) dx$ \
 ### Trick
 
 $E(f(x)) = \int f(x) p(x) \frac{\pi(x)}{\pi(x)} dx$ \
-$E(f(x)) = \int f(x) \frac{\p(x)}{\pi(x)} \pi(x) dx$ This allows you to pick a new distribution (typically Gaussian to make your life easy) \
+$E(f(x)) = \int f(x) \frac{p(x)}{\pi(x)} \pi(x) dx$ This allows you to pick a new distribution (typically Gaussian to make your life easy) \
 
 ### Motion
 
@@ -43,7 +41,7 @@ Sequential Important Resampling \
 $f(x)$
 $E(f(x)) = \int f(x) p(x) dx$ \
 $E(f(x)) = \int f(x) \frac{p(x)}{\pi(x)} \pi(x) dx$ \
-$E(f(x)) \approx \sum f(x_k) w_k dx$ $\sum w_k = 1$ \pi(x) drops out because you are pulling samples for Monte Carlo \
+$E(f(x)) \approx \sum f(x_k) w_k dx$ $\sum w_k = 1$ $\pi(x)$ drops out because you are pulling samples for Monte Carlo \
 
 Update: \
 $\int f(x) \frac{p(x|y)}{\pi(x)} \pi(x) dx$ \

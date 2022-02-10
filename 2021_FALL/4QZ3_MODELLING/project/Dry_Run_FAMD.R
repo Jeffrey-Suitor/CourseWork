@@ -10,17 +10,6 @@ library(pROC)
 
 library(lmtest)
 
-library("readr")
-library("MASS")
-library("car")
-library("pscl")
-library("caret")
-
-data(wine)
-df <- wine[,c(1,2, 16, 22, 29, 28, 30,31)]
-head(df[, 1:7], 4)
-
-
 heart = read_csv("~/school/4qz3-modelling/project/heart.csv")
 #Cleaning blank BP and Cholesterol Values
 heart = subset(heart, RestingBP>20) # Resting BP can't be 0

@@ -54,11 +54,11 @@
 ## Scalar Kalman
 
 * $Given a, c, \sigma_v^2 = model uncertainty, \sigma_q^2 = observation uncertainty$ \
-* $Start at \widetilde{x}_0 with P_0$ \
-* Predict \
+* Start at $\widetilde{x}_0$ with $P_0$
+* Predict
     * $\widetilde{x}_m^+ = a x_{m-1}$ \
     * $P_m^+ = a^2 P_{m-1} + \sigma_v^2$ \
 * Update $y_m$ \
     * $\widetilde{x}_m = \widetilde{x}_m^+ + k(y_m - c \widetilde{x}_m^+)$ \
-    * $P_m = (1- kc) P_m^+$ \
-    * $k = \frac{c P_m^+}{c^2 P_m^+ + \sigma_q^2}$ \
+    * $P_m = (1- kc) P_m^+$
+    * $k = \frac{c P_m^{+}}{c^2 P_m^{+} + \sigma_q^2}$
